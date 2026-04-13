@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌈 ColorBlast Trader - Fun Edition</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    
+    body {
+      margin: 0;
+      font-family: 'Press Start 2P', cursive;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #fff;
+      text-align: center;
+      overflow-x: hidden;
+    }
+    .header {
+      background: rgba(0,0,0,0.8);
+      padding: 15px;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      border-bottom: 4px solid #ff00ff;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 20px;
+      margin: 15px;
+      box-shadow: 0 0 30px rgba(255,0,255,0.5);
+      border: 3px solid #00ffff;
+    }
+    button {
+      font-family: 'Press Start 2P', cursive;
+      padding: 15px 25px;
+      margin: 10px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .color-btn {
+      width: 120px;
+      height: 120px;
+      font-size: 50px;
+      margin: 10px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px #fff;
+    }
+    .color-btn:hover {
+      transform: scale(1.15);
+    }
+    #countdown {
+      font-size: 48px;
+      color: #ffff00;
+      text-shadow: 0 0 20px #ffff00;
+    }
+    .history {
+      max-height: 300px;
+      overflow-y: auto;
+      background: rgba(0,0,0,0.6);
+      padding: 15px;
+      border-radius: 15px;
+      text-align: left;
+    }
+    .win { color: #00ff00; }
+    .lose { color: #ff0066; }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    input {
+      padding: 15px;
+      margin: 10px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+    }
+    .emoji-bg {
+      position: absolute;
+      font-size: 30px;
+      opacity: 0.2;
+      pointer-events: none;
+      animation: float 15s infinite linear;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  🌈 <span>COLORBLAST TRADER</span> 🌈
+  <span style="font-size:20px; margin-left:auto;">Score: <span id="score">1000</span> 💎</span>
+</div>
+
+<div class="container">
+
+  <!-- Login / Register -->
+  <div id="auth-screen" class="card">
+    <h1>Welcome to the Fun Zone! 🎮</h1>
+    <input type="text" id="username" placeholder="Username" value="player123"><br>
+    <input type="password" id="password" placeholder="Password"><br>
+    <button onclick="register()">Register / Login</button>
+    <p style="font-size:14px; margin-top:20px;">
+      Admin Panel → <button onclick="showAdminLogin()" style="padding:8px 15px; font-size:14px;">toybur666</button>
+    </p>
+  </div>
+
+  <!-- Main Game -->
+  <div id="game-screen" class="card" style="display:none;">
+    <h2>Choose Your Color & Predict! 🌟</h2>
+    <div id="countdown">60</div>
+    
+    <div style="margin:25px 0;">
+      <button class="color-btn" onclick="selectColor(this)" data-color="🔴">🔴</button>
+      <button class="color-btn" onclick="selectColor(this)" data-color="🟢">🟢</button>
+      <button class="color-btn" onclick="selectColor(this)" data-color="🔵">🔵</button>
+      <button class="color-btn" onclick="selectColor(this)" data-color="🟡">🟡</button>
+      <button class="color-btn" onclick="selectColor(this)" data-color="🟣">🟣</button>
+      <button class="color-btn" onclick="selectColor(this)" data-color="🟠">🟠</button>
+    </div>
+
+    <button onclick="playRound()" style="background:#ff00ff; color:white;">🚀 PLAY THIS ROUND</button>
+
+    <div class="card" style="margin-top:30px;">
+      <h3>Recent History 📜</h3>
+      <div id="history" class="history"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Login Modal -->
+<div id="admin-modal" class="modal">
+  <div class="card" style="max-width:400px;">
+    <h2>🔐 Admin Panel</h2>
+    <input type="text" id="admin-user" placeholder="Username" value="toybur666"><br>
+    <input type="password" id="admin-pass" placeholder="Password"><br>
+    <button onclick="adminLogin()">Login as Admin</button>
+    <button onclick="closeModal()" style="background:#666;">Close</button>
+  </div>
+</div>
+
+<script>
+// Simple local storage based auth & data
+let currentUser = null;
+let score = 1000;
+let selectedColor = null;
+let timer;
+let timeLeft = 60;
+let history = [];
+
+const colors = ["🔴", "🟢", "🔵", "🟡", "🟣", "🟠"];
+
+function register() {
+  const username = document.getElementById("username").value.trim();
+  if (!username) {
+    alert("Please enter a username! 😊");
+    return;
+  }
+  currentUser = username;
+  score = parseInt(localStorage.getItem(username + "_score")) || 1000;
+  history = JSON.parse(localStorage.getItem(username + "_history")) || [];
+  
+  document.getElementById("auth-screen").style.display = "none";
+  document.getElementById("game-screen").style.display = "block";
+  updateScore();
+  startCountdown();
+  renderHistory();
+}
+
+function updateScore() {
+  document.getElementById("score").textContent = score;
+}
+
+function selectColor(btn) {
+  document.querySelectorAll('.color-btn').forEach(b => b.style.border = "3px solid #00ffff");
+  btn.style.border = "6px solid #ffff00";
+  selectedColor = btn.getAttribute("data-color");
+}
+
+function playRound() {
+  if (!selectedColor) {
+    alert("Please choose a color first! 🌈");
+    return;
+  }
+  
+  // Random result - only Red or Green for simplicity (as per original idea)
+  const result = Math.random() < 0.5 ? "🔴" : "🟢";
+  
+  let message = "";
+  if (selectedColor === result) {
+    score += 50; // fun points
+    message = `<span class="win">🎉 WIN! +50 points (${result})</span>`;
+  } else {
+    score = Math.max(100, score - 30);
+    message = `<span class="lose">😢 Missed... Result was ${result}</span>`;
+  }
+  
+  history.unshift(`${new Date().toLocaleTimeString()} - ${message}`);
+  if (history.length > 10) history.pop();
+  
+  localStorage.setItem(currentUser + "_score", score);
+  localStorage.setItem(currentUser + "_history", JSON.stringify(history));
+  
+  updateScore();
+  renderHistory();
+  selectedColor = null;
+  document.querySelectorAll('.color-btn').forEach(b => b.style.border = "3px solid #00ffff");
+}
+
+function startCountdown() {
+  clearInterval(timer);
+  timeLeft = 60;
+  document.getElementById("countdown").textContent = timeLeft;
+  
+  timer = setInterval(() => {
+    timeLeft--;
+    document.getElementById("countdown").textContent = timeLeft;
+    
+    if (timeLeft <= 10) {
+      document.getElementById("countdown").style.color = "#ff0066";
+    }
+    
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      document.getElementById("countdown").style.color = "#ffff00";
+      setTimeout(() => {
+        alert("⏰ New round starting! Choose your color again 🌟");
+        startCountdown();
+      }, 800);
+    }
+  }, 1000);
+}
+
+function renderHistory() {
+  const histDiv = document.getElementById("history");
+  histDiv.innerHTML = history.join("<br>");
+}
+
+// Admin Panel
+function showAdminLogin() {
+  document.getElementById("admin-modal").style.display = "flex";
+}
+
+function adminLogin() {
+  const user = document.getElementById("admin-user").value;
+  const pass = document.getElementById("admin-pass").value;
+  
+  if (user === "toybur666" && pass === "toybur666") {
+    alert("✅ Welcome Admin! (This is a fun demo - no real controls here)");
+    closeModal();
+    // You can extend this part later if you want more admin features
+  } else {
+    alert("❌ Wrong credentials!");
+  }
+}
+
+function closeModal() {
+  document.getElementById("admin-modal").style.display = "none";
+}
+
+// Add floating emojis
+function addFloatingEmojis() {
+  const emojis = ["🌈", "✨", "🎮", "💎", "🔥", "🚀"];
+  for (let i = 0; i < 15; i++) {
+    const e = document.createElement("div");
+    e.className = "emoji-bg";
+    e.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    e.style.left = Math.random() * 100 + "vw";
+    e.style.top = Math.random() * 100 + "vh";
+    e.style.animationDuration = (Math.random() * 20 + 15) + "s";
+    document.body.appendChild(e);
+  }
+}
+
+window.onload = () => {
+  addFloatingEmojis();
+};
+</script>
+
+</body>
+</html>
